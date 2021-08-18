@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Amazon Cognito provide authentication, authorization, and user management for
-your web and mobile applications. It suppors third-party authentications, as
-well as normal user/password authentication.
+Amazon Cognito provides authentication, authorization, and user management for
+your web and mobile applications. It supports third-party authentications, as
+well as standard user/password authentication.
 
 The two main components of Amazon Cognito are:
 
@@ -41,10 +41,10 @@ There are many ways to sign user to your app:
 
 ### Importing users from CSV files
 
-You can bulk create users by providing a specificaly formatted CSV file. The
+You can bulk create users by providing a specifically formatted CSV file. The
 rows of the CSV file will contain all the information about the users except
-theeir `password`. User's will be required to change their passwords on their
-first sing in. In cognito's terms: users will be created in `RESET_REQUIRED`
+their `password`. Users will be required to change their passwords on their
+first sign-in. In Cognito's terms: users will be created in `RESET_REQUIRED`
 state when imported using this method.
 
 Here is a sample of a valid CSV file to import users:
@@ -65,8 +65,7 @@ Some important considerations:
   - `phone_number` (if `phone_number_verified` is `true`)
   - Any other attribute marked as `required` when creating the User Pool.
 2. Eiter `email_verified` or `phone_number_verified` must be `true` for **all**
-   users. Else, the bulk import won't start. An email or SMS will be send to
-   each user so they can update their passwords.
+   users. Else, the bulk import won't start. An email or SMS will be sent to each user so they can update their passwords.
 3. The `header` row is **required**.
 4. The maximum file size is 100MB.
 5. The maximum number of users is 500.000.
@@ -138,13 +137,13 @@ const {UserImportJob} = await client.createUserImportJob({
   JobName: "JobName",
   /**
    * UserPoolId is the user pool ID for the user pool that the users are being
-   * imported into.
+   * imported.
    */
   UserPoolId: process.env.AMAZON_COGNITO_USER_POOL_ID,
 })
 ```
 
-Inside the `UserImportJob` object we can find all th information related to the
+Inside the `UserImportJob` object, we can find all the information related to the
 job. Especially the value of the `PreSignedUrl` that we have to use to upload
 the file.
 
@@ -153,23 +152,25 @@ method or list all the jobs using the `listUserImportJobs` method.
 
 ## Lambda Triggers
 
-You can create Lambda functions that will get trigger during certain user pool
-operations to add authentication challenges, migrate users, or customize
+You can create Lambda functions that will get trigger during some user pool
+operations to add authentication challenges, migrate users or customize
 verification messages.
 
-Some of the most notable trigger are:
+Some of the most notable triggers are:
 
 - [`Pre Token
   Generation`](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-token-generation.html):
-  Augment or supress token claims.
+  Augment or suppress token claims.
 - [`Custom
   Message`](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-custom-message.html):
   Advanced customization and localization of messages.
 
 ## CDK
 
+### User Pools
+
 For both the `emailBody` and `smsMessage` properties, you can configure the
-following substrings that will be populated by Cognito before sending them:
+following substrings that Cognito will populate before sending them:
 
 | Description | Token |
 | --- | --- |
@@ -193,16 +194,16 @@ following substrings that will be populated by Cognito before sending them:
 Cognito comes pre-configured to support a long list of attributes to define each
 user. If these attributes are not enough, custom ones can be added by the
 administrator. Any attribute can be configured as `required`, meaning that it
-needs to always be present; and `mutable`, meaning that it can be modified.
+must always be present, and `mutable`, meaning that it can be modified.
 
-The default account recovery mechanisms is by phone, if available, or email.
-Users can't recover their accounts through the phone if they are also using it
+The default account recovery mechanisms are by phone, if available, or email.
+Users can't recover their accounts through the phone if they use it
 as their MFA device.
 
 ```ts
 new cognito.UserPool(this, "UserPool", {
   /**
-   * userPoolName is the name of the User Pool. If none is provided CDK will
+   * userPoolName is the name of the User Pool. If none is provided, CDK will
    * automatically generate one.
    */
   userPoolName: "userPool",
@@ -235,7 +236,7 @@ new cognito.UserPool(this, "UserPool", {
     smsMessage: "SMS Message",
   },
   /**
-   * userInvitation configures the message that gets send to the user after an
+   * userInvitation configures the message that gets sent to the user after an
    * administrator creates an account for them using the admin API.
    */
   userInvitation: {
@@ -255,26 +256,26 @@ new cognito.UserPool(this, "UserPool", {
   },
   /**
    * signInAliases configures the valid aliases a user can use to authenticate
-   * itself through the sign in flow.
+   * itself through the sign-in flow.
    */
   signInAliases: {
     /**
-     * username allows signing in using the one time immutable user name that
+     * username allows signing in using the one-time immutable user name that
      * the user chose at the time of sign up.
      */
     username: true,
     /**
-     * email allows signin in using the email address that is associated with
+     * email allows sign-in in using the email address that is associated with
      * the account.
      */
     email: true,
     /**
-     * phone allows signin in using the phone number that is assciated with the
+     * phone allows sign-in in using the phone number that is associated with the
      * account.
      */
     phone: true,
     /**
-     * preferredUsername allows signin in with an alternate user name that can
+     * preferredUsername allows signing in with an alternate user name that can
      * be changed by the user at any time. However, this is not available if
      * the `username` option is not chosen.
      */
@@ -311,12 +312,12 @@ new cognito.UserPool(this, "UserPool", {
       modified: true,
     }
     /**
-     * For a complete list of attributes please refer to the following
+     * For a complete list of attributes, please refer to the following
      * link: https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-attributes.html
      */
   },
   /**
-   * customAttributes holds the configuraton of Amazon Cognito's custom
+   * customAttributes holds the configuration of Amazon Cognito's custom
    * attributes.
    */
   customAttributes: {
@@ -326,7 +327,7 @@ new cognito.UserPool(this, "UserPool", {
     "dateTimeAttribute": new cognito.DateTimeAttribute({/* DateTime attribute props */}),
   }
   /**
-   * mfa configures the behaviour of multi factor authentication in the user poo.
+   * mfa configures the behavior of multi-factor authentication in the user poo.
    */
   mfa: cognito.Mfa.REQUIRED,
   /**
@@ -334,18 +335,18 @@ new cognito.UserPool(this, "UserPool", {
    */
   mfaSecondFactor: {
     /**
-     * sms allows SMS as second factor.
+     * sms allows SMS as a second factor.
      */
     sms: true,
     /**
-     * otp allows One Time Password apps to be used as second factos.
+     * otp allows One Time Password apps to be used as the second factor.
      */
     otp: true,
   },
   /**
-   * passwordPolicy configures the policies that a password must comply for it
+   * passwordPolicy configures the policies that a password must comply with for it
    * to be considered valid. It also sets the configuration of the expiration of
-   * temprary passwords generate by creating a user using the admin API.
+   * temporary passwords generate by creating a user using the admin API.
    */
   passwordPolicy: {
     /**
@@ -404,7 +405,7 @@ new cognito.UserPool(this, "UserPool", {
 By default, CDK will create the necessary roles to send SMS messages to the
 users.
 
-Also, MFA can be configued as either: `off`, `optional`, or `required`. Optional
+Also, MFA can be configured as either: `off`, `optional`, or `required`. Optional
 means that the user has the possibility of configuring MFA by themselves when
 they want.
 
@@ -412,8 +413,7 @@ they want.
 
 By default, Amazon Cognito comes configured to use an internal engine to send
 messages. This engine has a limit quota that is not set to handle production
-environments. For production, it is recommended to configure SES as the main way
-of sending emails to the users.
+environments. For production, it is recommended to configure SES to send emails to the users.
 
 Unfortunately, the high level `UserPool` construct doesn't support configuring
 SES as the default email engine. A workaround is to configure the [underlying
@@ -441,5 +441,231 @@ cfnUserPool.emailConfiguration = {
 > and the SES account must be moved out of the SES Sandbox to send emails to
 > unverified email addresses.
 
+### App Clients
 
+An App is an entity within a user pool with permissions to call
+unauthenticated APIs such as register, sign in, and forgotten passwords. To
+reach these APIs, you need an app client ID and an optional client secret.
 
+```typescript
+const pool = new cognito.UserPool(this, "pool")
+const client = pool.addClient("app-client", {
+  /**
+   * preventUserExistenceErrors is a flag that tells the client to return generic
+   * authentication errors. Used to prevent user existence errors.
+   */
+  preventUserExistenceErrors: true,
+})
+const clientId = client.userPoolClientId
+```
+
+Clients can be configured with different authentication flows: Secure Remote
+Password, username-and-password, etc.
+
+```typescript
+pool.addClient("app-client", {
+  /**
+   * authFlows configures the authentication flows supported by the client.
+   */
+  authFlows: {
+    /**
+     * userPassword configures the user-password authentication flow.
+     */
+    userPassword: true,
+    /**
+     * userSrp configures the user SRP authentication flow.
+     */
+    userSrp: true,
+  }
+})
+```
+
+Besides these flows, clients can be configured with OAuth 2.0 authorization flows
+and scopes. The following snippet configures an app client with the
+authorization code grant flow and registers the app's welcome page as a redirect
+URL. It also configures the access token scope to `openid`, which is an OAuth
+2.0 scope defined on the OAuth 2.0 RFC.
+
+```typescript
+pool.addClient("app-client", {
+  /**
+   * oAuth configures the client oAuth authentication flow.
+   */
+  oAuth: {
+    /**
+     * flows configures the different OAuth 2.0 flows provided by the RFC.
+     */
+    flows: {
+      /**
+       * authorizationCodeGrant configures the authorization code grant flow.
+       */
+      authorizationCodeGrant: true,
+      /**
+       * scopes set the OAuth scopes allowed on the client.
+       */
+      scopes: [cognito.OAuthScope.OPENID],
+      /**
+       * callbackUrls set the list of valid callback or redirect URLs to redirect
+       * the user after signing in.
+       */
+      callbacksUrls: ["https://example.com/welcome"],
+      /**
+       * logoutUrls set the list of valid callback or redirect URLs to redirect
+       * the user after signing out.
+       */
+      logoutUrls: ["https://example.com/signin"],
+    },
+  }
+})
+```
+
+Following the OIDC open standard, Cognito user pool clients provide
+access tokens, ID tokens, and refresh tokens. The expiration time for each token
+can be configured as follows.
+
+```typescript
+pool.addClient("app-client", {
+  /**
+   * accessTokenValidity sets the validity duration of an access token.
+   */
+  accessTokenValidity: Duration.minutes(60),
+  /**
+   * idTokenValidity sets the validity duration of an id token.
+   */
+  idTokenValidity: Duration.minutes(60),
+  /**
+   * refreshTokenValidity sets the validity duration of a refresh token.
+   */
+  refreshTokenValidity: Duration.minutes(60),
+})
+```
+
+## Resouce Servers
+
+A resource server is a server for access-protected resources. It handles
+authenticated requests from an app that has an access token.
+
+An application may choose to model custom permissions via OAuth. Resource
+servers provide this capability via custom scopes that are attached to an app
+client. The following example sets up a resource server for the `users` resource
+for two different app clients and configures the clients to use these scopes.
+
+```typescript
+const readOnlyScope = new ResourceServerScope({
+  /**
+   * scopeName defines the friendly name for the scope.
+   */
+  scopeName: "read",
+  /**
+   * scopeDescription describes the scope.
+   */
+  scopeDescription: "Read-only access",
+})
+const fullAccessScope = new ResourceServerScope({
+  scopeName: "*",
+  scopeDescription: "Full Access",
+})
+
+const userServer = pool.addResourceServer("ResourceServer", {
+  /**
+   * identifier is the id of the resource server.
+   */
+  identifier: "users",
+  /**
+   * scopes define the list of scopes supported by the resource server.
+   */
+  scopes: [readOnlyScope, fullAccessScope]
+})
+
+const readOnlyClient = pool.addClient("read-only-client", {
+  // ...
+  oAuth: {
+    // ...
+    scopes: [OAuthScope.resourceServer(userServer, readOnlyScope)]
+  }
+})
+
+const fullAccessClient = pool.addClient("full-access-client", {
+  // ...
+  oAuth: {
+    // ...
+    scopes: [OAuthScope.resourceServer(userServer, fullAccessScope)]
+  }
+})
+```
+
+## Domains
+
+After setting up an app client, the address for the user pool's sign-up and
+sign-in webpages can be configured using domains. There are two ways to set up a
+domain - either the Amazon Cognito hosted domain can be chosen with an available
+domain prefix, or a custom domain name can be selected. The custom domain must be already owned, and whose certificate is registered in AWS
+Certificate Manager.
+
+The following code sets up a user pool domain in Amazon Cognito hosted domain
+with the prefix `myapp`, and another domain with the custom domain
+`custom.myapp.com`.
+
+```typescript
+pool.addDomain("CognitoDomain", {
+  /**
+   * cognitoDomain holds the configuration of the Cognito domain that serves the
+   * authentication pages.
+   */
+  cognitoDomain: {
+    /**
+     * domainPrefix is the domain prefix to apply to Cognito's auth domain.
+     */
+    domainPrefix: "myapp",
+  }
+})
+
+const certificateArn = "arn:aws:acm:us-east-1:123456789012:certificate/11-3336f1-44483d-adc7-9cd375c5169d"
+
+const domainCert = certificatemanager.Certificate.fromCertificateArn(this, "domainCert", certificateArn)
+
+pool.addDomain("CustomDomain", {
+  /**
+   * customDomain holds the configuration of the custom domain that server the
+   * authentication pages.
+   */
+  customDomain: {
+    /**
+     * domainName is the custom domain name to be used.
+     */
+    domainName: "custom.myapp.com",
+    /**
+     * certificate is the domain certificate construct to use.
+     */
+    certificate: domainCert,
+  }
+})
+```
+
+The `signInUrl()` method returns the fully qualified URL to the login page for
+the user pool. This page comes from the hosted UI configured with Cognito.
+
+```typescript
+const client = pool.addClient("Client", {
+  // ...
+  oAuth: {
+    flows: {
+      implicitCodeGrant: true,
+    },
+    callbackUrls: [
+      "https://myapp.com/home",
+      "https://myapp.com/users",
+    ]
+  }
+})
+
+const domain = userpool.addDomain("Domain", {/**/})
+
+const signInUrl = domain.signInUrl(client, {
+  /**
+   * redirectUri to redirect the user after the sign-in process is done. It must
+   * be one of the URLs configured on the client's `callbackUrls` property.
+   */
+  redirectUri: "https://myapp.com/home",
+})
+```
