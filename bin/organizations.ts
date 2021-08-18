@@ -1,7 +1,7 @@
 import { App } from "@aws-cdk/core"
 
 import { OrganizationsStack } from "../lib/organizations-stack"
-import { Account, AccountType } from "../lib/account"
+import { AccountType } from "../lib/account"
 
 /**
  * App
@@ -46,4 +46,5 @@ const nestedOU = [{
 new OrganizationsStack(app, "Organizations", {
   email,
   nestedOU,
+  forceEmailVerification,
 })

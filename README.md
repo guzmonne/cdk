@@ -11,22 +11,22 @@ All the code written in this repository is made to help the following actors:
 Operators administrate the organization's IT environments.
 
 They require:
-An isolated set of secured environments.
+
+- An isolated set of secured environments.
 - A web portal that allows them to access each domain.
 - A central billing system that controls the spending among environments.
 - A central activity view that provides visibility across environments.
 - A central users and permissions management service.
-- An isolated DNS management zone to securely control your main DNS domains.
 
 ### Developers
 
 Developers are members of an Organization that develop software.
 
 They require:
+
 - An environment with broad permissions to experiment, test, and develop.
 - A web portal that allows them to log in to all their environments.
 - A simple way to create multi-stage CI/CD pipelines to deploy code to production securely.
-- A simple way to add public DNS records to expose their services.
 
 ## Stages
 
