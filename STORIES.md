@@ -48,6 +48,11 @@
     - The workflow of the backend service should not be modified.
     - A container image should be automatically created any time a new commit is tagged on the `master` branch, if the test suite passes.
     - After the image is ready, a new container should be deployed to the `production` environment using a Green/Blue deployment.
+- As a Backend Developer I would like to have access to a service that would simplify the authentication workflows.
+  - **Acceptance Criteria**:
+    - It must support bulk user creation.
+    - It must support a way to keep sessions alive for more than one hour.
+    - It must allow to set an authorization code with an expire time longer than 8 hours.
 
 
 
