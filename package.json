@@ -14,7 +14,6 @@
     "organizations:deploy": "cdk deploy --app='npx ts-node --prefer-ts-exts bin/organizations.ts'"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "^1.118.0",
     "@types/aws-lambda": "^8.10.82",
     "@types/jest": "^26.0.24",
     "@types/jsforce": "^1.9.34",
@@ -29,15 +28,17 @@
     "typescript": "~3.9.7"
   },
   "dependencies": {
+    "@aws-cdk/assert": "^1.119.0",
     "@aws-cdk/aws-apigateway": "^1.119.0",
     "@aws-cdk/aws-codecommit": "^1.119.0",
     "@aws-cdk/aws-codepipeline": "^1.119.0",
     "@aws-cdk/aws-codepipeline-actions": "^1.119.0",
+    "@aws-cdk/aws-config": "^1.119.0",
     "@aws-cdk/aws-dynamodb": "^1.119.0",
     "@aws-cdk/aws-iam": "^1.119.0",
     "@aws-cdk/aws-lambda": "^1.119.0",
-    "@aws-cdk/aws-sns": "1.119.0",
-    "@aws-cdk/aws-sns-subscriptions": "1.119.0",
+    "@aws-cdk/aws-sns": "^1.119.0",
+    "@aws-cdk/aws-sns-subscriptions": "^1.119.0",
     "@aws-cdk/aws-sqs": "1.119.0",
     "@aws-cdk/core": "^1.119.0",
     "@aws-cdk/pipelines": "^1.119.0"

@@ -13,7 +13,7 @@ const app = new App()
 const email = app.node.tryGetContext("email")
 const forceEmailVerification = app.node.tryGetContext("force_email_verification")
 const nestedOU = [{
-  name: "SharedServices",
+  name: "DevOps",
   accounts: [{
     name: "CICD",
     type: AccountType.CICD,
@@ -41,10 +41,13 @@ const nestedOU = [{
   }]
 }]
 /**
- * Stack
+ * AWS Organizations Stack
  */
 new OrganizationsStack(app, "Organizations", {
   email,
   nestedOU,
   forceEmailVerification,
 })
+/**
+ * CDK Pipeline
+ */

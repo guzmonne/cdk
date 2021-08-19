@@ -15,6 +15,10 @@ export interface PipelineStackProps extends StackProps {
    */
   app: string;
   /**
+   * selfMutation must be set if the CDK Pipeline will update itself.
+   */
+  selfMutation?: boolean;
+  /**
    * githubRepo corresponds to the name of the repo, without the username.
    */
   githubRepo: string;
@@ -30,13 +34,6 @@ export interface PipelineStackProps extends StackProps {
    * githubConnectionArn os the GitHub connection ARN generated using the AWS console.
    */
   githubConnectionArn: string;
-  /**
-   * pipelineDeployableRegions holds the regions where the application will be deployed.
-   * These regions will be bootstraped with resources necessary to run the pipeline.
-   *
-   * See https://docs.aws.amazon.com/cdk/latest/guide/bootstrapping.html
-   */
-  readonly pipelineDeployableRegions: string[];
 }
 
 export class PipelineStack extends Stack {
@@ -55,9 +52,10 @@ export class PipelineStack extends Stack {
     const sourceArtifact = new codepipeline.Artifact()
     const cloudAssemblyArtifact = new codepipeline.Artifact()
     /**
-     * Pipeline
+     * CDK Pipeline
      */
-    const pipeline = new pipelines.CodePipeline(this, "Pipeline", {
+    const cdkPipeline = new pipelines.CodePipeline(this, "Pipeline", {
+      selfMutation: props.selfMutation || false,
       synth: new pipelines.ShellStep("Synth", {
         input: pipelines.CodePipelineSource.connection(`${props.githubOwner}/${props.githubRepo}`, props.githubRepoBranch, {
           /**
@@ -66,32 +64,17 @@ export class PipelineStack extends Stack {
            */
           connectionArn: props.githubConnectionArn,
         }),
+        installCommands: [
+          "npm install",
+        ],
         commands: [
           "npm run test",
           `npx cdk synth --app="npx ts-node ${props.app}"`,
         ]
       })
     })
-
-    const pipelineOld = new pipelines.CdkPipeline(this, "Pipeline", {
-      pipelineName: "DevopsPipeline",
-      cloudAssemblyArtifact,
-      sourceAction: new codepipeline_actions.GitHubSourceAction({
-        actionName: "GitHub",
-        output: sourceArtifact,
-        branch: props.githubRepoBranch,
-        oauthToken: SecretValue.secretsManager("GITHUB_TOKEN"),
-        owner: props.githubOwner,
-        repo: props.githubRepo,
-      }),
-      synthAction: pipelines.SimpleSynthAction.standardNpmSynth({
-        sourceArtifact,
-        cloudAssemblyArtifact,
-        subdirectory: "bin/",
-        installCommand: "npm install",
-        testCommands: ["npm test"],
-
-      })
-    })
+    /**
+     * Stages
+     */
   }
 }

@@ -1,5 +1,4 @@
 import { Construct, Stack, StackProps } from "@aws-cdk/core"
-import * as iam from "@aws-cdk/aws-iam"
 import type { IDependable } from "@aws-cdk/core"
 
 import { AccountType, Account } from "./account"
@@ -7,6 +6,7 @@ import { Organization } from "./organization"
 import { OrganizationTrail } from "./organization-trail"
 import { OrganizationalUnit } from "./organizational-unit"
 import { ValidateEmail } from "./validate-email"
+import { SecureRootUser } from "./secure-root-user"
 
 /**
  * AccountSpec is the interface for an AWS Account details.
@@ -72,6 +72,13 @@ export interface OrganizationsStackProps extends StackProps {
   * forceEmailVerification enables the Email Verification Process
   */
   readonly forceEmailVerification?: boolean,
+  /**
+   * pipelineDeployableRegions holds the regions where the application will be deployed.
+   * These regions will be bootstraped with resources necessary to run the pipeline.
+   *
+   * See https://docs.aws.amazon.com/cdk/latest/guide/bootstrapping.html
+   */
+  readonly pipelineDeployableRegions?: string[];
 }
 
 export class OrganizationsStack extends Stack {
@@ -93,27 +100,36 @@ export class OrganizationsStack extends Stack {
   constructor(scope: Construct, id: string, props: OrganizationsStackProps) {
     super(scope, id, props)
     const { email, nestedOU, forceEmailVerification } = props
-
+    /**
+     * Organizational Unit Tree
+     */
     if (nestedOU.length > 0) {
       const org = new Organization(this, "Organization")
       if (email) {
         this.emailPrefix = email.split("@", 2)[0]
         this.domain = email.split("@", 2)[1]
-      }
 
-      if (forceEmailVerification) {
-        const validateEmail = new ValidateEmail(this, "EmailValidation", { email })
-        org.node.addDependency(validateEmail)
+        if (forceEmailVerification) {
+          const validateEmail = new ValidateEmail(this, "EmailValidation", { email })
+          org.node.addDependency(validateEmail)
+        }
       }
-
+      /**
+       * Organization Trail
+       */
       const orgTrail = new OrganizationTrail(this, "OrganizationTrail", { OrganizationId: org.id })
       orgTrail.node.addDependency(org)
-
+      /**
+       * Create Organizational Unit Tree with its corresponding accounts.
+       */
       let previousSequentialConstruct: IDependable = orgTrail
-
       nestedOU.forEach((nestedOU) => {
         previousSequentialConstruct = this.createOrganizationTree(nestedOU, org.rootId, previousSequentialConstruct)
       })
+      /**
+       * Secure Root User
+       */
+      new SecureRootUser(this, "SecureRootUser", { notificationEmail: email })
     }
   }
 
