@@ -173,7 +173,9 @@ export class OrganizationTrail extends core.Construct {
           "iam:CreateServiceLinkedRole",
           "organizations:DisableAWSServiceAccess",
           "organizations:DescribeOrganization",
-          "organizations:ListAWSServiceAccessForOrganization"
+          "organizations:ListAWSServiceAccessForOrganization",
+          "cloudtrail:StartLogging",
+          "cloudtrail:StopLogging",
         ],
         "Resource": "*"
       }
@@ -181,7 +183,7 @@ export class OrganizationTrail extends core.Construct {
 
     const startLogging = new AwsCustomResource(this, "OrganizationTrailStartLogging", {
       /**
-       * startLoggin Starts the recording of AWS API calls and log file delivery for a trail. For a trail
+       * startLogging Starts the recording of AWS API calls and log file delivery for a trail. For a trail
        * that is enabled in all regions, this operation must be called from the region in which the trail
        * was created. This operation cannot be called on the shadow trails (replicated trails in other
        * regions) of a trail that is enabled in all regions.
@@ -219,7 +221,7 @@ export class OrganizationTrail extends core.Construct {
       installLatestAwsSdk: false,
       policy: AwsCustomResourcePolicy.fromSdkCalls({
         resources: AwsCustomResourcePolicy.ANY_RESOURCE
-      })
+      }),
     })
     startLogging.node.addDependency(organizationTrailCreate)
   }
