@@ -669,3 +669,7 @@ const signInUrl = domain.signInUrl(client, {
   redirectUri: "https://myapp.com/home",
 })
 ```
+
+## Resources
+
+- [Amazon Cognito Developer Guide](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)
