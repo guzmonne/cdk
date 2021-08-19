@@ -1,3 +1,19 @@
+# This template is modified from original to add PermissionsBoundary for CFN Execution Role
+# The CFN Execution Role usually has AdministratorAccess attached. This exposes the CICD account to risk as
+# anyone who can execute `cdk deploy` can create role with AdministratorAccess (IAM privilege escalation)
+#
+# We create two PermissionsBoundaries to with least privilege policy.
+# 1. CloudFormationExecutionPermissionsBoundary - for CICD pipeline deployment
+# 2. CICDPipelinePermissionsBoundary - for any roles used in CICD pipeline (e.g. CodeBuild/CodePipeline)
+#
+# See the following links for more details:
+# 1. https://aws.amazon.com/premiumsupport/knowledge-center/iam-permission-boundaries/
+# 2. https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html
+# 3. https://github.com/aws/aws-cdk/issues/9256
+#
+# Original Bootstrap template (used when you run `cdk bootstrap`):
+# https://github.com/aws/aws-cdk/blob/master/packages/aws-cdk/lib/api/bootstrap/bootstrap-template.yaml
+#
 Description:
   This stack includes resources needed to deploy AWS CDK apps into this
   environment
@@ -484,8 +500,307 @@ Resources:
               - Ref: AWS::NoValue
               # The CLI will advertise that we picked this implicitly
               - - Fn::Sub: "arn:${AWS::Partition}:iam::aws:policy/AdministratorAccess"
+      PermissionsBoundary:
+        Ref: CloudFormationExecutionPermissionsBoundary
       RoleName:
         Fn::Sub: cdk-${Qualifier}-cfn-exec-role-${AWS::AccountId}-${AWS::Region}
+  CloudFormationExecutionPermissionsBoundary:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:CreateBucket
+              - s3:DeleteBucket
+              - s3:DeleteBucketPolicy
+              - s3:DeleteJobTagging
+              - s3:DeleteObjectTagging
+              - s3:DeleteObjectVersionTagging
+              - s3:PutBucketPolicy
+              - s3:PutBucketPublicAccessBlock
+              - s3:PutBucketTagging
+              - s3:PutJobTagging
+              - s3:PutObjectTagging
+              - s3:PutObjectVersionTagging
+              - s3:GetEncryptionConfiguration
+              - s3:PutEncryptionConfiguration
+            Resource:
+              - !Sub "arn:aws:s3:::*"
+          - Effect: Allow
+            Action:
+              - codepipeline:CreateCustomActionType
+              - codepipeline:CreatePipeline
+              - codepipeline:DeletePipeline
+              - codepipeline:StartPipelineExecution
+              - codepipeline:DeleteWebhook
+              - codepipeline:GetPipeline
+              - codepipeline:GetPipelineState
+              - codepipeline:DeregisterWebhookWithThirdParty
+              - codepipeline:PutWebhook
+              - codepipeline:RegisterWebhookWithThirdParty
+              - codepipeline:TagResource
+              - codepipeline:UntagResource
+              - codepipeline:UpdatePipeline
+            Resource: "*"
+
+            # PipelineSelfMutate
+          - Effect: Allow
+            Action:
+              - ssm:GetParameters
+            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cdk-bootstrap/*"
+
+            # SecretsManagerForGithub
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:GITHUB_TOKEN*"
+
+            # KMS
+          - Effect: Allow
+            Action:
+              - kms:CreateKey
+              - kms:PutKeyPolicy
+              - kms:ScheduleKeyDeletion
+              - kms:TagResource
+              - kms:UntagResource
+              - kms:DescribeKey
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+
+            # KMS Alias
+          - Effect: Allow
+            Action:
+              - kms:CreateAlias
+              - kms:DeleteAlias
+              - kms:UpdateAlias
+            Resource:
+              - !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+              - !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/codepipeline-*"
+
+            # KMSCreateKey
+          - Effect: Allow
+            Action:
+              - kms:CreateKey
+            Resource: "*"
+
+            # CodeBuild
+          - Effect: Allow
+            Action:
+              - codebuild:CreateProject
+              - codebuild:DeleteProject
+              - codebuild:UpdateProject
+              - codebuild:BatchGetProjects
+            Resource: !Sub "arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/*"
+
+          # Self-Mutate requires permission to start PipelineExecution
+          - Effect: Allow
+            Action:
+              - codepipeline:StartPipelineExecution
+            Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:*"
+
+            # IamReadPolicyForKMSKeyCreation
+          - Effect: Allow
+            Action:
+              - iam:GetRole
+            Resource: "*"
+
+            # IamModifyWithBoundary
+          - Effect: Allow
+            Action:
+              - iam:CreateRole
+              - iam:AttachRolePolicy
+              - iam:DetachRolePolicy
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+            Resource: "*"
+            Condition:
+              ForAnyValue:StringEquals:
+                "iam:PermissionsBoundary":
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cfn-exec-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cicd-pipeline-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+            # IamModifyWithLimitedResourceName
+          - Effect: Allow
+            Action:
+              - iam:GetRolePolicy
+              - iam:DeleteRole
+              - iam:PassRole
+              - iam:TagRole
+              - iam:UntagRole
+              - iam:UpdateRole
+              - iam:UpdateRoleDescription
+              - sts:AssumeRole
+            Resource: "*"
+
+          ##################################################################
+          # Deny dangerous actions that could escalate privilege or cause security incident
+          ##################################################################
+          # DenyChangeAccountPublicAccess
+          - Effect: Deny
+            Action:
+              - s3:PutAccountPublicAccessBlock
+            Resource: "*"
+
+            # DenyBoundaryPolicyEdit
+          - Effect: Deny
+            Action:
+              - iam:CreatePolicyVersion
+              - iam:DeletePolicy
+              - iam:DeletePolicyVersion
+              - iam:SetDefaultPolicyVersion
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cfn-exec-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cicd-pipeline-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+
+            # DenyBoundaryDelete
+          - Effect: Deny
+            Action:
+              - iam:DeleteUserPermissionsBoundary
+              - iam:DeleteRolePermissionsBoundary
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+            Condition:
+              "ForAnyValue:StringEquals":
+                "iam:PermissionsBoundary":
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cfn-exec-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cicd-pipeline-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+
+            # DenyBoundaryUpdateIfNotAddingBoundary
+          - Effect: Deny
+            Action:
+              - iam:PutUserPermissionsBoundary
+              - iam:PutRolePermissionsBoundary
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+            Condition:
+              "ForAnyValue:StringEquals":
+                "iam:PermissionsBoundary":
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cfn-exec-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cicd-pipeline-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+        Version: "2012-10-17"
+      ManagedPolicyName:
+        Fn::Sub: cdk-${Qualifier}-cfn-exec-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}
+
+  # Limit scope of roles created for CICD pipeline (e.g. CodePipeline, CodeBuild)
+  # The permissions in this policy is derived from when we run `cdk deploy` to generate the CICD pipeline stack
+  # We cannot limit this boundary by resource name for some services (e.g. S3, CodeBuild, Role to assume) as their resource names
+  # depend on stack name.
+  CICDPipelinePermissionsBoundary:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetBucket*
+              - s3:GetObject*
+              - s3:List*
+              - s3:Abort*
+              - s3:PutObject*
+              - s3:DeleteObject*
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - kms:CancelKeyDeletion
+              - kms:Create*
+              - kms:Decrypt
+              - kms:Delete*
+              - kms:Describe*
+              - kms:Disable*
+              - kms:Enable*
+              - kms:GenerateDataKey*
+              - kms:Get*
+              - kms:List*
+              - kms:Put*
+              - kms:ReEncrypt*
+              - kms:Revoke*
+              - kms:ScheduleKeyDeletion
+              - kms:TagResource
+              - kms:UntagResource
+              - kms:Update*
+            Resource:
+              - !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - organizations:ListAccounts
+              - organizations:ListTagsForResource
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - codebuild:CreateReportGroup
+              - codebuild:CreateReport
+              - codebuild:UpdateReport
+              - codebuild:BatchPutTestCases
+            Resource: !Sub "arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/*"
+          - Effect: Allow
+            Action:
+              - codebuild:BatchGetBuilds
+              - codebuild:StartBuild
+              - codebuild:StopBuild
+            Resource: !Sub "arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/*"
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+
+          ##################################################################
+          # Deny dangerous actions that could escalate privilege or cause security incident
+          ##################################################################
+          # DenyChangeAccountPublicAccess
+          - Effect: Deny
+            Action:
+              - s3:PutAccountPublicAccessBlock
+            Resource: "*"
+
+            # DenyBoundaryPolicyEdit
+          - Effect: Deny
+            Action:
+              - iam:CreatePolicyVersion
+              - iam:DeletePolicy
+              - iam:DeletePolicyVersion
+              - iam:SetDefaultPolicyVersion
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cfn-exec-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cicd-pipeline-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+
+            # DenyBoundaryDelete
+          - Effect: Deny
+            Action:
+              - iam:DeleteUserPermissionsBoundary
+              - iam:DeleteRolePermissionsBoundary
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+            Condition:
+              "ForAnyValue:StringEquals":
+                "iam:PermissionsBoundary":
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cfn-exec-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cicd-pipeline-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+
+            # DenyBoundaryUpdateIfNotAddingBoundary
+          - Effect: Deny
+            Action:
+              - iam:PutUserPermissionsBoundary
+              - iam:PutRolePermissionsBoundary
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+            Condition:
+              "ForAnyValue:StringNotEquals":
+                "iam:PermissionsBoundary":
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cfn-exec-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:policy/cdk-${Qualifier}-cicd-pipeline-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}"
+        Version: "2012-10-17"
+      ManagedPolicyName:
+        Fn::Sub: cdk-${Qualifier}-cicd-pipeline-permissions-boundary-policy-${AWS::AccountId}-${AWS::Region}
+
   # The SSM parameter is used in pipeline-deployed templates to verify the version
   # of the bootstrap resources.
   CdkBootstrapVersion:
@@ -528,3 +843,9 @@ Outputs:
       in this stack
     Value:
       Fn::GetAtt: [CdkBootstrapVersion, Value]
+  CICDPipelinePermissionsBoundaryArn:
+    Description: Policy for Permissions Boundary of CDK Pipeline. This will limit the privilege of roles created by the CICD Pipeline stack.
+    Value:
+      Ref: CICDPipelinePermissionsBoundary
+    Export:
+      Name: CICDPipelinePermissionsBoundaryArn
