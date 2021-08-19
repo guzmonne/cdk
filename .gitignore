@@ -9,4 +9,4 @@ cdk.out
 
 # Custom
 .env
-!lambda/*.js
+!lambda/**/*.js

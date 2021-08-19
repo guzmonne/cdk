@@ -9,6 +9,8 @@
     "watch": "tsc -w",
     "test": "npx jest",
     "cdk": "cdk",
+    "bootstrap": "cdk bootstrap --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess",
+    "lambda:build": "tsc lambda/**/*.ts",
     "organizations:synth": "cdk synth --app='npx ts-node --prefer-ts-exts bin/organizations.ts'",
     "organizations:diff": "cdk diff --app='npx ts-node --prefer-ts-exts bin/organizations.ts'",
     "organizations:deploy": "cdk deploy --app='npx ts-node --prefer-ts-exts bin/organizations.ts'"
