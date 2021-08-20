@@ -5,10 +5,16 @@ import * as codepipeline_actions from "@aws-cdk/aws-codepipeline-actions"
 import * as iam from "@aws-cdk/aws-iam"
 import type { StackProps } from "@aws-cdk/core"
 
+import { AppStack } from "./app"
+
 /**
  * PipelineStackProps represent the PipelineStack properties.
  */
 export interface PipelineStackProps extends StackProps {
+  /**
+   * devAccountId corresponds to the ID of the development account.
+   */
+  devAccountId: string;
   /**
    * app must point to the file that defines the application to deploy. For example
    * `bin/organizations.ts`.
@@ -35,7 +41,11 @@ export interface PipelineStackProps extends StackProps {
    */
   githubConnectionArn: string;
 }
-
+/**
+ * PipelineStack is the Construct that represents a CodePipeline service connected to this GitHub's
+ * repository, that reacts to new commits done to master, and redeploy's itself an other services
+ * using CDK.
+ */
 export class PipelineStack extends Stack {
   /**
    * Constructor
@@ -66,6 +76,7 @@ export class PipelineStack extends Stack {
         }),
         installCommands: [
           "npm install",
+          "npm run lambda:build",
         ],
         commands: [
           "npm run test",
@@ -76,5 +87,11 @@ export class PipelineStack extends Stack {
     /**
      * Stages
      */
+    cdkPipeline.addStage(new AppStack(this, "Dev", {
+      env: {
+        account: props.devAccountId,
+        region: Stack.of(this).region,
+      }
+    }))
   }
 }
