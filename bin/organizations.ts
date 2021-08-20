@@ -48,6 +48,3 @@ new OrganizationsStack(app, "Organizations", {
   nestedOU,
   forceEmailVerification,
 })
-/**
- * CDK Pipeline
- */

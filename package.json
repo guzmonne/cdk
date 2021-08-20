@@ -14,7 +14,12 @@
     "organizations:synth": "cdk synth --app='npx ts-node --prefer-ts-exts bin/organizations.ts'",
     "organizations:diff": "cdk diff --app='npx ts-node --prefer-ts-exts bin/organizations.ts'",
     "organizations:destroy": "cdk destroy --app='npx ts-node --prefer-ts-exts bin/organizations.ts'",
-    "organizations:deploy": "cdk deploy --app='npx ts-node --prefer-ts-exts bin/organizations.ts'"
+    "organizations:deploy": "cdk deploy --app='npx ts-node --prefer-ts-exts bin/organizations.ts'",
+    "cdk-pipeline:synth": "cdk synth --app='npx ts-node --prefer-ts-exts bin/cdk-pipeline.ts'",
+    "cdk-pipeline:diff": "cdk diff --app='npx ts-node --prefer-ts-exts bin/cdk-pipeline.ts'",
+    "cdk-pipeline:ls": "cdk ls --app='npx ts-node --prefer-ts-exts bin/cdk-pipeline.ts'",
+    "cdk-pipeline:destroy": "cdk destroy --app='npx ts-node --prefer-ts-exts bin/cdk-pipeline.ts'",
+    "cdk-pipeline:deploy": "cdk deploy --app='npx ts-node --prefer-ts-exts bin/cdk-pipeline.ts'"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.82",

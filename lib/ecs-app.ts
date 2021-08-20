@@ -1,4 +1,4 @@
-import { Construct, Duration, SecretValue, CfnOutput } from "@aws-cdk/core"
+import { Construct, Duration, CfnOutput, Stack } from "@aws-cdk/core"
 import * as ec2 from "@aws-cdk/aws-ec2"
 import * as ecr from "@aws-cdk/aws-ecr"
 import * as ecs from "@aws-cdk/aws-ecs"
@@ -49,9 +49,9 @@ export interface EcsAppProps {
    */
   githubBranch: string;
   /**
-   * githubSecret is the ID or ARN of the secret.
+   * githubConnectionArn is the ID or ARN of the secret.
    */
-  githubSecret: string;
+  githubConnectionArn: string;
   /**
    * ecsAppName of the ECS Stack.
    */
@@ -66,7 +66,7 @@ export interface EcsAppProps {
  * `Empatho-Nodejs-App` repository, and creates a new Docker image on each
  * commit.
  */
-export class EcsApp extends Construct {
+export class EcsApp extends Stack {
   /**
    * Constructor
    *
@@ -79,7 +79,7 @@ export class EcsApp extends Construct {
     /**
      * ECS VPC
      */
-    const vpc = new ec2.Vpc(this, "EcsAppVpc", {
+    const vpc = new ec2.Vpc(this, "Vpc", {
       cidr: props.vpcCidr,
       natGateways: 1,
       maxAzs: 3
@@ -87,32 +87,32 @@ export class EcsApp extends Construct {
     /**
      * ECS Cluster Admin Role
      */
-    const clusterAdmin = new iam.Role(this, "EcsAppClusterAdminRole", {
+    const clusterAdmin = new iam.Role(this, "ClusterAdminRole", {
       assumedBy: new iam.AccountRootPrincipal()
     });
     /**
      * ECS Cluster
      */
-    const cluster = new ecs.Cluster(this, "EcsAppCluster", {
+    const cluster = new ecs.Cluster(this, "Cluster", {
       vpc: vpc,
     });
     /**
      * ECS AWS Log Driver
      */
     const logging = new ecs.AwsLogDriver({
-      streamPrefix: "EcsAppLogs"
+      streamPrefix: "Logs"
     });
     /**
      * ECS Task Role
      */
-    const taskRole = new iam.Role(this, `EcsAppTaskRole-${props.ecsAppName}`, {
-      roleName: `EcsAppTaskRole-${props.ecsAppName}`,
+    const taskRole = new iam.Role(this, `TaskRole-${props.ecsAppName}`, {
+      roleName: `TaskRole-${props.ecsAppName}`,
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com")
     });
     /**
      * ECS Task
      */
-    const taskDef = new ecs.FargateTaskDefinition(this, "EcsAppFargateTaskDefinition", {
+    const taskDef = new ecs.FargateTaskDefinition(this, "FargateTaskDefinition", {
       taskRole: taskRole
     });
     const executionRolePolicy = new iam.PolicyStatement({
@@ -147,7 +147,7 @@ export class EcsApp extends Construct {
     /**
      * ECS Fargate Service
      */
-    const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, "EcsAppApplicationLoadBalancedFargateService", {
+    const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, "ApplicationLoadBalancedFargateService", {
       cluster: cluster,
       taskDefinition: taskDef,
       publicLoadBalancer: true,
@@ -158,7 +158,7 @@ export class EcsApp extends Construct {
      * ECS Fargate Service Auto Scaling
      */
     const scaling = fargateService.service.autoScaleTaskCount({ maxCapacity: 6 });
-    scaling.scaleOnCpuUtilization("EcsAppCpuScaling", {
+    scaling.scaleOnCpuUtilization("CpuScaling", {
       targetUtilizationPercent: 10,
       scaleInCooldown: Duration.seconds(60),
       scaleOutCooldown: Duration.seconds(60)
@@ -182,7 +182,7 @@ export class EcsApp extends Construct {
      * CodeBuild Project
      */
     // CODEBUILD - project
-    const project = new codebuild.Project(this, "EcsAppCodeBuildProject", {
+    const project = new codebuild.Project(this, "CodeBuildProject", {
       projectName: `${props.ecsAppName}`,
       source: gitHubSource,
       environment: {
@@ -195,6 +195,12 @@ export class EcsApp extends Construct {
         },
         "ECR_REPO_URI": {
           value: `${ecrRepo.repositoryUri}`
+        },
+        "DOCKER_IMAGE": {
+          value: `${props.ecsContainerImage}`
+        },
+        "DOCKER_TAG": {
+          value: `${props.ecsContainerTag}`
         }
       },
       buildSpec: codebuild.BuildSpec.fromObject({
@@ -203,22 +209,22 @@ export class EcsApp extends Construct {
           pre_build: {
             commands: [
               "env",
-              "export TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION}"
+              "export GITHUB_COMMIT_ID=${CODEBUILD_RESOLVED_SOURCE_VERSION}"
             ]
           },
           build: {
             commands: [
               "cd flask-docker-app",
-              `docker build -t $ECR_REPO_URI:$TAG .`,
+              `docker build -t $ECR_REPO_URI/$DOCKER_IMAGE:$DOCKER_TAG -t $ECR_REPO_URI/$DOCKER_IMAGE:$GITHUB_COMMIT_ID .`,
               "$(aws ecr get-login --no-include-email)",
-              "docker push $ECR_REPO_URI:$TAG"
+              "docker push --all-tags $ECR_REPO_URI/$DOCKER_IMAGE"
             ]
           },
           post_build: {
             commands: [
               "echo \"In Post - Build Stage\"",
               "cd ..",
-              "printf '[{ \"name\":\"flask-app\",\"imageUri\":\"%s\"}]' $ECR_REPO_URI: $TAG > imagedefinitions.json",
+              `printf '[{ \"name\":\"${props.ecsAppName}\",\"imageUri\":\"%s\"}]' $ECR_REPO_URI/$DOCKER_IMAGE:$DOCKER_TAG > imagedefinitions.json`,
               "pwd; ls -al; cat imagedefinitions.json"
             ]
           }
@@ -238,16 +244,16 @@ export class EcsApp extends Construct {
     /**
      * CodePipeline Actions
      */
-    const sourceAction = new codepipeline_actions.GitHubSourceAction({
-      actionName: "EcsAppGithubSourceAction",
+    const sourceAction = new codepipeline_actions.CodeStarConnectionsSourceAction({
+      actionName: "GithubSourceAction",
       owner: props.githubOwner,
       repo: props.githubRepo,
       branch: props.githubBranch,
-      oauthToken: SecretValue.secretsManager(props.githubSecret),
-      output: sourceOutput
-    });
+      connectionArn: props.githubConnectionArn,
+      output: sourceOutput,
+    })
     const buildAction = new codepipeline_actions.CodeBuildAction({
-      actionName: "EcsAppCodeBuild",
+      actionName: "CodeBuild",
       project: project,
       input: sourceOutput,
       outputs: [buildOutput], // optional
@@ -258,14 +264,14 @@ export class EcsApp extends Construct {
     });
     */
     const deployAction = new codepipeline_actions.EcsDeployAction({
-      actionName: "EcsAppDeployAction",
+      actionName: "DeployAction",
       service: fargateService.service,
       imageFile: new codepipeline.ArtifactPath(buildOutput, `imagedefinitions.json`)
     });
     /**
      * CodePipelines Stages
      */
-    new codepipeline.Pipeline(this, "EcsAppCodePipeline", {
+    new codepipeline.Pipeline(this, "CodePipeline", {
       stages: [{
         stageName: "Source",
         actions: [sourceAction],
@@ -298,7 +304,7 @@ export class EcsApp extends Construct {
     /**
      * Output
      */
-    new CfnOutput(this, "EcsAppLoadBalancerDNS", {
+    new CfnOutput(this, "LoadBalancerDNS", {
       value: fargateService.loadBalancer.loadBalancerDnsName
     });
   }
