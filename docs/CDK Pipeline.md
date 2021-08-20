@@ -47,9 +47,11 @@ it you need to:
 3. In `Name`, choose the name of the pending connection you want to update.
 4. Choose `Update a pending connection`.
 5. On the `Connect to Github` page accept and create the connection.
+6. Click on `Install a new app`.
+7. Select the `Empatho-Corp` organization.
+8. Click `Connect`.
 
-The connection will have the same level of access as the user who accepted the
-connection on its GitHub account.
+The connection must be created from a user who has
 
 ### Procedure
 
