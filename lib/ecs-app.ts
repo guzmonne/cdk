@@ -77,6 +77,10 @@ export class EcsApp extends Stack {
   constructor(scope: Construct, id: string, props: EcsAppProps) {
     super(scope, id);
     /**
+     * ECR Repository
+     */
+    const ecrRepo = new ecr.Repository(this, "EcrRepository");
+    /**
      * ECS VPC
      */
     const vpc = new ec2.Vpc(this, "Vpc", {
@@ -164,10 +168,6 @@ export class EcsApp extends Stack {
       scaleOutCooldown: Duration.seconds(60)
     });
     /**
-     * ECR Repository
-     */
-    const ecrRepo = new ecr.Repository(this, "EcrRepository");
-    /**
      * GitHub Source
      */
     const gitHubSource = codebuild.Source.gitHub({
@@ -181,7 +181,6 @@ export class EcsApp extends Stack {
     /**
      * CodeBuild Project
      */
-    // CODEBUILD - project
     const project = new codebuild.Project(this, "CodeBuildProject", {
       projectName: `${props.ecsAppName}`,
       source: gitHubSource,
