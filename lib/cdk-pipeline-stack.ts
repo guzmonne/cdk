@@ -25,6 +25,18 @@ export interface CDKPipelineStackProps extends StackProps {
    * to the `Empatho-Corp/Empatho-AWS-Infrastructure` repository.
    */
   githubConnectionArn: string;
+  /**
+   * githubOwner is the GitHub account/user that owns the CDK repository.
+   */
+  githubOwner?: string;
+  /**
+  * githubRepo is the name of the CDK repository (without the username).
+  */
+  githubRepo?: string;
+  /**
+  * githubBranch is the name of the branch of the CDK repository (can be a regular expression).
+  */
+  githubBranch?: string;
 }
 /**
  * CDKPipelineStack is the Construct that represents a CodePipeline service connected to this GitHub's
@@ -41,18 +53,24 @@ export class CDKPipelineStack extends Stack {
    */
   constructor(scope: Construct, id: string, props: CDKPipelineStackProps) {
     super(scope, id, props)
+    const {
+      githubOwner = "Empatho-Corp",
+      githubRepo = "Empatho-AWS-Infrastructure",
+      githubBranch = "master",
+      githubConnectionArn,
+    } = props
     /**
      * CDK Pipeline
      */
     const cdkPipeline = new pipelines.CodePipeline(this, "CodePipeline", {
       selfMutation: props.selfMutation || true,
       synth: new pipelines.ShellStep("Synth", {
-        input: pipelines.CodePipelineSource.connection("Empatho-Corp/Empatho-AWS-Infrastructure", "master", {
+        input: pipelines.CodePipelineSource.connection(`${githubOwner}/${githubRepo}`, githubBranch, {
           /**
            * connectionArn is a GitHub connection created using the AWS console to authenticate
            * to GitHub.
            */
-          connectionArn: props.githubConnectionArn,
+          connectionArn: githubConnectionArn,
         }),
         installCommands: [
           "npm install",

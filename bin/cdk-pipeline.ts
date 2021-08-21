@@ -12,5 +12,7 @@ const app = new App()
 new CDKPipelineStack(app, "CDKPipelineStack", {
   app: "bin/cdk-pipeline.ts",
   devAccountId: "925638840915",
-  githubConnectionArn: "arn:aws:codestar-connections:us-east-1:925638840915:connection/ddf4e02e-e664-4b4e-b620-0973ddd1a513",
+  githubConnectionArn: "arn:aws:codestar-connections:us-east-1:925638840915:connection/207b4297-7965-47ab-873e-4237bb1c901f",
+  githubOwner: "guzmonne",
+  githubRepo: "cdk",
 })
