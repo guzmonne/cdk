@@ -67,7 +67,23 @@ Then, configure the following environment variables on your session.
 
 ```sh
 export PROFILE=<aws_profile>
+export AWS_ACCOUNT_ID=<aws_account_id>
+export AWS_REGION=<aws_region>
+export ECR_REPO_URI=$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
 ```
+
+Use this as an example:
+
+```sh
+export PROFILE=root
+export AWS_ACCOUNT_ID=123456789012
+export AWS_REGION=us-east-1
+export ECR_REPO_URI=$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+```
+
+> You can get your `aws_account_id` through the management console or using the
+> AWS `cli` running the following command `aws sts get-caller-identity --profile
+> $PROFILE`
 
 Beforw deploying the app run the `diff` command to se a list of the
 modifications that will be applied.
@@ -80,4 +96,31 @@ If everything checks out, deploy the stack:
 
 ```sh
 npm run cdk-pipeline:deploy -- --profile $PROFILE
+```
+
+When running the stack for the first time a bug appears that impedes the
+creation of the ECS service. The problem is that the Fargate service is trying
+to start a container from an image that doesn't exists yet. So, we need to
+create the initial image, and push it manually to ECR to avoid this problem. We
+are going to need to get the name of the ECR repository. We can do this through
+the Management Console or using the API:
+
+```sh
+aws ecr describe-repositories --profile $PROFILE
+```
+
+Create an environment variable holding the name of the repository.
+
+```sh
+export ECR_REPO_NAME=<ecr_repo_name>
+```
+
+Go to your project and run the following commands to `build` and `push` the
+first container image.
+
+
+```sh
+docker build -t empathonodejsapp:latest .
+docker tag empathonodejsapp:latest $ECR_REPO_URI/$ECR_REPO_NAME
+docker push --all-tags $ECR_REPO_URI/$ECR_REPO_NAME
 ```

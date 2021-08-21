@@ -195,11 +195,17 @@ export class EcsApp extends Stack {
         "ECR_REPO_URI": {
           value: `${ecrRepo.repositoryUri}`
         },
+        "ECR_REPO_NAME": {
+          value: `${ecrRepo.repositoryName}`
+        },
         "DOCKER_IMAGE": {
-          value: `${props.ecsContainerImage}`
+          value: `${props.ecsContainerImage.toLowerCase()}`
         },
         "DOCKER_TAG": {
-          value: `${props.ecsContainerTag}`
+          value: `${props.ecsContainerTag?.toLowerCase() || "latest"}`
+        },
+        "AWS_REGION": {
+          value: Stack.of(this).region,
         }
       },
       buildSpec: codebuild.BuildSpec.fromObject({
@@ -208,21 +214,24 @@ export class EcsApp extends Stack {
           pre_build: {
             commands: [
               "env",
-              "export GITHUB_COMMIT_ID=${CODEBUILD_RESOLVED_SOURCE_VERSION}"
+              "export GITHUB_COMMIT_ID=${CODEBUILD_RESOLVED_SOURCE_VERSION}",
+              "npm install",
             ]
           },
           build: {
             commands: [
-              `docker build -t $ECR_REPO_URI/$DOCKER_IMAGE:$DOCKER_TAG -t $ECR_REPO_URI/$DOCKER_IMAGE:$GITHUB_COMMIT_ID .`,
-              "$(aws ecr get-login --no-include-email)",
-              "docker push --all-tags $ECR_REPO_URI/$DOCKER_IMAGE"
+              "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URI",
+              "docker build -t $DOCKER_IMAGE:$DOCKER_TAG -t $DOCKER_IMAGE:$GITHUB_COMMIT_ID .",
+              "docker tag $DOCKER_IMAGE:$DOCKER_TAG $ECR_REPO_URI/$ECR_REPO_NAME:$DOCKER_TAG",
+              "docker tag $DOCKER_IMAGE:$GITHUB_COMMIT_ID $ECR_REPO_URI/$ECR_REPO_NAME:$GITHUB_COMMIT_ID",
+              "docker push --all-tags $ECR_REPO_URI/$ECR_REPO_NAME",
             ]
           },
           post_build: {
             commands: [
               "echo \"In Post - Build Stage\"",
               "cd ..",
-              `printf '[{ \"name\":\"${props.ecsAppName}\",\"imageUri\":\"%s\"}]' $ECR_REPO_URI/$DOCKER_IMAGE:$DOCKER_TAG > imagedefinitions.json`,
+              `printf '[{ \"name\":\"${props.ecsAppName.toLowerCase()}\",\"imageUri\":\"%s\"}]' $ECR_REPO_URI/$ECR_REPO_NAME:$DOCKER_TAG > imagedefinitions.json`,
               "pwd; ls -al; cat imagedefinitions.json"
             ]
           }
