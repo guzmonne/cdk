@@ -151,7 +151,7 @@ export class EcsApp extends Stack {
       cluster: cluster,
       taskDefinition: taskDef,
       publicLoadBalancer: true,
-      desiredCount: 3,
+      desiredCount: 0,
       listenerPort: 80
     });
     /**
