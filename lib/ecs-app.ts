@@ -100,7 +100,7 @@ export class EcsApp extends Stack {
      * ECS AWS Log Driver
      */
     const logging = new ecs.AwsLogDriver({
-      streamPrefix: "Logs"
+      streamPrefix: props.ecsAppName,
     });
     /**
      * ECS Task Role
@@ -151,7 +151,7 @@ export class EcsApp extends Stack {
       cluster: cluster,
       taskDefinition: taskDef,
       publicLoadBalancer: true,
-      desiredCount: 0,
+      desiredCount: 1,
       listenerPort: 80
     });
     /**
@@ -214,7 +214,6 @@ export class EcsApp extends Stack {
           },
           build: {
             commands: [
-              "cd flask-docker-app",
               `docker build -t $ECR_REPO_URI/$DOCKER_IMAGE:$DOCKER_TAG -t $ECR_REPO_URI/$DOCKER_IMAGE:$GITHUB_COMMIT_ID .`,
               "$(aws ecr get-login --no-include-email)",
               "docker push --all-tags $ECR_REPO_URI/$DOCKER_IMAGE"
