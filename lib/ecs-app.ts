@@ -136,7 +136,7 @@ export class EcsApp extends Stack {
      * ECS Container
      */
     const container = taskDef.addContainer(props.ecsContainerName, {
-      image: ecs.ContainerImage.fromRegistry(`${ecrRepo.repositoryName}:${props.ecsContainerTag || "latest"}`),
+      image: ecs.ContainerImage.fromRegistry(`${ecrRepo.repositoryUri}/${ecrRepo.repositoryName}:${props.ecsContainerTag || "latest"}`),
       memoryLimitMiB: props.ecsContainerMemoryLimitMiB || 256,
       cpu: props.ecsContainerCpu || 256,
       logging
