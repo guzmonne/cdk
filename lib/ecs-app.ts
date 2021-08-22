@@ -37,6 +37,10 @@ export interface EcsAppProps {
    */
   ecsContainerPort?: number;
   /**
+   * ecsHostPort is the port number on the container instance to reserve for your container.
+   */
+  ecsHostPort?: number;
+  /**
    * githubOwner is the GitHub account/user that owns the repo.
    */
   githubOwner: string;
@@ -145,6 +149,7 @@ export class EcsApp extends Stack {
      * ECS Container Port Mapping
      */
     container.addPortMappings({
+      hostPort: props.ecsHostPort || 5000,
       containerPort: props.ecsContainerPort || 5000,
       protocol: ecs.Protocol.TCP
     });
@@ -156,7 +161,7 @@ export class EcsApp extends Stack {
       taskDefinition: taskDef,
       publicLoadBalancer: true,
       desiredCount: 1,
-      listenerPort: 80
+      listenerPort: 80,
     });
     /**
      * ECS Fargate Service Auto Scaling
@@ -221,13 +226,13 @@ export class EcsApp extends Stack {
               "docker build -t $DOCKER_IMAGE:$DOCKER_TAG -t $DOCKER_IMAGE:$GITHUB_COMMIT_ID .",
               "docker tag $DOCKER_IMAGE:$DOCKER_TAG $ECR_REPO_URI:$DOCKER_TAG",
               "docker tag $DOCKER_IMAGE:$GITHUB_COMMIT_ID $ECR_REPO_URI:$GITHUB_COMMIT_ID",
-              "docker push --all-tags $ECR_REPO_URI",
+              "docker push $ECR_REPO_URI:$DOCKER_TAG",
+              "docker push $ECR_REPO_URI:$GITHUB_COMMIT_ID",
             ]
           },
           post_build: {
             commands: [
               "echo \"In Post - Build Stage\"",
-              "cd ..",
               `printf '[{ \"name\":\"${props.ecsAppName.toLowerCase()}\",\"imageUri\":\"%s\"}]' $ECR_REPO_URI:$DOCKER_TAG > imagedefinitions.json`,
               "pwd; ls -al; cat imagedefinitions.json"
             ]
