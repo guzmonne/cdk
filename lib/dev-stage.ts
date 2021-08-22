@@ -38,7 +38,6 @@ export class DevStage extends Stage {
       ecsContainerName: "EmpathoNodejsApp",
       ecsContainerImage: "EmpathoNodejsApp",
       ecsContainerPort: 80,
-      ecsHostPort: 5000,
     })
   }
 }

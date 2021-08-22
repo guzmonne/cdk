@@ -37,10 +37,6 @@ export interface EcsAppProps {
    */
   ecsContainerPort?: number;
   /**
-   * ecsHostPort is the port number on the container instance to reserve for your container.
-   */
-  ecsHostPort?: number;
-  /**
    * githubOwner is the GitHub account/user that owns the repo.
    */
   githubOwner: string;
@@ -149,7 +145,6 @@ export class EcsApp extends Stack {
      * ECS Container Port Mapping
      */
     container.addPortMappings({
-      hostPort: props.ecsHostPort || 5000,
       containerPort: props.ecsContainerPort || 5000,
       protocol: ecs.Protocol.TCP
     });
