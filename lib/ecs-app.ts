@@ -136,7 +136,7 @@ export class EcsApp extends Stack {
      * ECS Container
      */
     const container = taskDef.addContainer(props.ecsContainerName, {
-      image: ecs.ContainerImage.fromRegistry(`${ecrRepo.repositoryUri}/${ecrRepo.repositoryName}:${props.ecsContainerTag || "latest"}`),
+      image: ecs.ContainerImage.fromRegistry(`${ecrRepo.repositoryUri}:${props.ecsContainerTag || "latest"}`),
       memoryLimitMiB: props.ecsContainerMemoryLimitMiB || 256,
       cpu: props.ecsContainerCpu || 256,
       logging
@@ -195,9 +195,6 @@ export class EcsApp extends Stack {
         "ECR_REPO_URI": {
           value: `${ecrRepo.repositoryUri}`
         },
-        "ECR_REPO_NAME": {
-          value: `${ecrRepo.repositoryName}`
-        },
         "DOCKER_IMAGE": {
           value: `${props.ecsContainerImage.toLowerCase()}`
         },
@@ -222,16 +219,16 @@ export class EcsApp extends Stack {
             commands: [
               "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URI",
               "docker build -t $DOCKER_IMAGE:$DOCKER_TAG -t $DOCKER_IMAGE:$GITHUB_COMMIT_ID .",
-              "docker tag $DOCKER_IMAGE:$DOCKER_TAG $ECR_REPO_URI/$ECR_REPO_NAME:$DOCKER_TAG",
-              "docker tag $DOCKER_IMAGE:$GITHUB_COMMIT_ID $ECR_REPO_URI/$ECR_REPO_NAME:$GITHUB_COMMIT_ID",
-              "docker push --all-tags $ECR_REPO_URI/$ECR_REPO_NAME",
+              "docker tag $DOCKER_IMAGE:$DOCKER_TAG $ECR_REPO_URI:$DOCKER_TAG",
+              "docker tag $DOCKER_IMAGE:$GITHUB_COMMIT_ID $ECR_REPO_URI:$GITHUB_COMMIT_ID",
+              "docker push --all-tags $ECR_REPO_URI",
             ]
           },
           post_build: {
             commands: [
               "echo \"In Post - Build Stage\"",
               "cd ..",
-              `printf '[{ \"name\":\"${props.ecsAppName.toLowerCase()}\",\"imageUri\":\"%s\"}]' $ECR_REPO_URI/$ECR_REPO_NAME:$DOCKER_TAG > imagedefinitions.json`,
+              `printf '[{ \"name\":\"${props.ecsAppName.toLowerCase()}\",\"imageUri\":\"%s\"}]' $ECR_REPO_URI:$DOCKER_TAG > imagedefinitions.json`,
               "pwd; ls -al; cat imagedefinitions.json"
             ]
           }

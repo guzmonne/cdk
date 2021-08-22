@@ -120,6 +120,7 @@ first container image.
 
 
 ```sh
+aws ecr get-login-password --profile $PROFILE --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URI
 docker build -t empathonodejsapp:latest .
 docker tag empathonodejsapp:latest $ECR_REPO_URI/$ECR_REPO_NAME
 docker push --all-tags $ECR_REPO_URI/$ECR_REPO_NAME
