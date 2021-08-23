@@ -85,7 +85,7 @@ export class EcsApp extends Stack {
      */
     const vpc = new ec2.Vpc(this, "Vpc", {
       cidr: props.vpcCidr,
-      natGateways: 1,
+      natGateways: 0,
       maxAzs: 3
     });
     /**
