@@ -16,15 +16,18 @@ const nestedOU = [{
   name: "DevOps",
   accounts: [{
     name: "CICD",
+    email: "mpiamonne+cicd@gmail.com",
     type: AccountType.CICD,
   }]
 }, {
   name: "Development",
   accounts: [{
     name: "Dev",
+    email: "mpiamonne+dev@gmail.com",
     type: AccountType.PLAYGROUND,
   }, {
     name: "Staging",
+    email: "mpiamonne+staging@gmail.com",
     type: AccountType.STAGE,
     stageName: "staging",
     stageOrder: 1,
@@ -34,6 +37,7 @@ const nestedOU = [{
   name: "Production",
   accounts: [{
     name: "Prod",
+    email: "mpiamonne+prod@gmail.com",
     type: AccountType.STAGE,
     stageName: "prod",
     stageOrder: 2,
